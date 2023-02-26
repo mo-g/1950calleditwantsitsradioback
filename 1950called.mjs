@@ -27,7 +27,7 @@
 //import gpio from 'rpi-gpio';
 import speaker from "speaker";
 
-import { Station, StreamProtocol } from "./Libraries/ecma-station/ecma-station.mjs";
+import { Station, StreamProtocol, Static } from "./Libraries/ecma-station/ecma-station.mjs";
 
 
 const configFile = "./config.js";
@@ -104,3 +104,5 @@ const dialServo = {
  */
 
 var station = Station.from(stations.pvfm3);
+
+var interStation = new Static();

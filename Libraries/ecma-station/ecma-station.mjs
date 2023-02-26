@@ -22,6 +22,8 @@ import vorbis from 'vorbis';
 import ogg from 'ogg';
 import fs from 'fs';
 import speaker from 'speaker';
+import getRandomValues from 'get-random-values';
+import { Readable } from 'stream';
 
 
 const StreamProtocol = {
@@ -94,4 +96,28 @@ class HLSStation extends Station {
     }
 }
 
-export { StreamProtocol, Station, NullOutput };
+/**
+ * This static noise generator will sit between stations!
+ * 
+ * Need to find a way to refill the stream on demand with more static.
+ */
+class Static {
+    constructor (sampleRate = 44100) {
+        this.sampleRate = sampleRate;
+        this.stream = Readable.from(this.generateNoise());
+        this.stream.pipe(new speaker());
+
+    }
+
+    generateNoise () {
+        var bufferSize = this.sampleRate * 5;
+        var output = new Int16Array(bufferSize);
+          
+        for (let i = 0; i < bufferSize; i++) {
+            output[i] = Math.random() * 32768 - 1;
+        }
+        return Buffer.from(output);
+    }
+}
+
+export { StreamProtocol, Station, NullOutput, Static };
