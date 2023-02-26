@@ -24,6 +24,7 @@ import fs from 'fs';
 import speaker from 'speaker';
 import getRandomValues from 'get-random-values';
 import { Readable } from 'stream';
+import Speaker from 'speaker';
 
 
 const StreamProtocol = {
@@ -62,23 +63,49 @@ class ICYStation extends Station {
 
         this.decoder = NullOutput
         this.output = NullOutput;
+        console.log("Streaming from:", url)
         icyClient.get(this.url, this.setupStream);
     }
 
     setupStream  = (response) =>  {
         // log the HTTP response headers
-        console.error(response.headers);
+        console.log(response.rawHeaders);
+
+        if (!response.headers) {
+            throw "Not a valid ICY Stream!"
+        }
+
+        var uniformHeaders = {};
+        Object.keys(response.headers).forEach(function (key) {
+            uniformHeaders[key.toLowerCase()] = response.headers[key];
+        });
+
+        if (!('content-type' in uniformHeaders)) {
+            throw "Content-Type not specified.";
+        } else {
+            var codec = uniformHeaders['content-type'];
+        }
         
-        if (response.headers['content-type'] == 'application/ogg') {
-            console.log("VORBIS Stream");
-            this.decoder = new ogg.Decoder();
-            this.decoder.on('stream', function (stream) {
-                var vd = new vorbis.Decoder();
-                vd.on('format', function (format) {
-                    vd.pipe(new speaker());
+        switch (codec) {
+            case "application/ogg":
+                console.log("VORBIS Stream");
+                this.decoder = new ogg.Decoder();
+                this.decoder.on('stream', function (stream) {
+                    var vd = new vorbis.Decoder();
+                    vd.on('format', function (format) {
+                        vd.pipe(new speaker());
+                    });
+                    stream.pipe(vd);
                 });
-                stream.pipe(vd);
-            });
+                break;
+            case "audio/mpeg":
+                console.log("MPEG1_3 Stream");
+                this.decoder = new lame.Decoder().pipe(new Speaker())
+                break;
+            case "audio/aacp":
+                throw "AAC not supported yet!";
+            default:
+                throw "Unsupported CODEC:", codec;
         }
         // log any "metadata" events that happen
         response.on('metadata', this.parseMetadata);

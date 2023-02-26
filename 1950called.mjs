@@ -75,6 +75,10 @@ const stations = {
         frequencyMax: 85,
         type: StreamProtocol.ICY,
         url: "https://dj.bronyradio.com/pvfmfree.ogg"
+    },
+    monstro: {
+        type: StreamProtocol.ICY,
+        url: "https:\/\/radio.dripfeed.net\/listen\/monstromental\/radio.mp3"
     }
 };
 
@@ -105,4 +109,4 @@ const dialServo = {
 
 var station = Station.from(stations.pvfm3);
 
-var interStation = new Static();
+//var interStation = new Static();
