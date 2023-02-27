@@ -16,12 +16,18 @@
  */
 
 
-import icyClient from 'icy';
+import icyClient from 'ecma-iceclient';
 import hlxFileReader from 'hlx-file-reader';
 import vorbis from 'vorbis';
 import ogg from 'ogg';
+import lame from '@suldashi/lame';
 import fs from 'fs';
 import speaker from 'speaker';
+import getRandomValues from 'get-random-values';
+import { Readable } from 'stream';
+import Speaker from 'speaker';
+import { FileWriter } from 'wav';
+import MemoryStream from 'memorystream';
 
 
 const StreamProtocol = {
@@ -60,31 +66,65 @@ class ICYStation extends Station {
 
         this.decoder = NullOutput
         this.output = NullOutput;
+        console.log("Streaming from:", url)
         icyClient.get(this.url, this.setupStream);
     }
 
     setupStream  = (response) =>  {
         // log the HTTP response headers
-        console.error(response.headers);
+        //console.error(response.headers);
+
+        if (!response.headers) {
+            throw "Not a valid ICY Stream!"
+        }
+
+        var uniformHeaders = {};
+        Object.keys(response.headers).forEach(function (key) {
+            uniformHeaders[key.toLowerCase()] = response.headers[key];
+        });
+
+        if (!('content-type' in uniformHeaders)) {
+            throw "Content-Type not specified.";
+        } else {
+            var codec = uniformHeaders['content-type'];
+        }
         
-        if (response.headers['content-type'] == 'application/ogg') {
-            console.log("VORBIS Stream");
-            this.decoder = new ogg.Decoder();
-            this.decoder.on('stream', function (stream) {
-                var vd = new vorbis.Decoder();
-                vd.on('format', function (format) {
-                    vd.pipe(new speaker());
+        switch (codec) {
+            case "application/ogg":
+                console.log("VORBIS Stream");
+                this.decoder = new ogg.Decoder();
+                this.decoder.on('stream', function (stream) {
+                    var vd = new vorbis.Decoder();
+                    vd.on('format', function (format) {
+                        vd.pipe(new speaker());
+                    });
+                    stream.pipe(vd);
                 });
-                stream.pipe(vd);
-            });
+                break;
+            case "audio/mpeg":
+                console.log("MPEG1_3 Stream");
+                var fileWriter = new FileWriter('demo.wav', {
+                    channels: 2,
+                    sampleRate: 44100,
+                    bitDepth: 32
+                });
+                this.decoder = new speaker();
+
+                break;
+            case "audio/aacp":
+                throw "AAC not supported yet!";
+            default:
+                throw "Unsupported CODEC:", codec;
         }
         // log any "metadata" events that happen
         response.on('metadata', this.parseMetadata);
-        response.pipe(this.decoder);
+        //response.pipe(this.decoder)
+        // NEED TO CACHE DATA WITH MEMORYSTREAM HERE.
+        response.pipe(new lame.Decoder()).pipe(this.decoder);
     }
 
     parseMetadata = (metadata) => {
-        console.log(metadata)
+        console.log(metadata.toString());
     }
 }
 
@@ -94,4 +134,28 @@ class HLSStation extends Station {
     }
 }
 
-export { StreamProtocol, Station, NullOutput };
+/**
+ * This static noise generator will sit between stations!
+ * 
+ * Need to find a way to refill the stream on demand with more static.
+ */
+class Static {
+    constructor (sampleRate = 44100) {
+        this.sampleRate = sampleRate;
+        this.stream = Readable.from(this.generateNoise());
+        this.stream.pipe(new speaker());
+
+    }
+
+    generateNoise () {
+        var bufferSize = this.sampleRate * 5;
+        var output = new Int16Array(bufferSize);
+          
+        for (let i = 0; i < bufferSize; i++) {
+            output[i] = Math.random() * 32768 - 1;
+        }
+        return Buffer.from(output);
+    }
+}
+
+export { StreamProtocol, Station, NullOutput, Static };

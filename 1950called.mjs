@@ -27,7 +27,7 @@
 //import gpio from 'rpi-gpio';
 import speaker from "speaker";
 
-import { Station, StreamProtocol } from "./Libraries/ecma-station/ecma-station.mjs";
+import { Station, StreamProtocol, Static } from "./Libraries/ecma-station/ecma-station.mjs";
 
 
 const configFile = "./config.js";
@@ -75,6 +75,14 @@ const stations = {
         frequencyMax: 85,
         type: StreamProtocol.ICY,
         url: "https://dj.bronyradio.com/pvfmfree.ogg"
+    },
+    monstro: {
+        type: StreamProtocol.ICY,
+        url: "https:\/\/radio.dripfeed.net\/listen\/monstromental\/radio.mp3"
+    },
+    test: {
+        type: StreamProtocol.ICY,
+        url: "http://firewall.pulsradio.com"
     }
 };
 
@@ -103,4 +111,6 @@ const dialServo = {
  * Do something useful:
  */
 
-var station = Station.from(stations.pvfm3);
+var station = Station.from(stations.monstro);
+
+//var interStation = new Static();
