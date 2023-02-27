@@ -79,6 +79,10 @@ const stations = {
     monstro: {
         type: StreamProtocol.ICY,
         url: "https:\/\/radio.dripfeed.net\/listen\/monstromental\/radio.mp3"
+    },
+    test: {
+        type: StreamProtocol.ICY,
+        url: "http://firewall.pulsradio.com"
     }
 };
 
@@ -107,6 +111,6 @@ const dialServo = {
  * Do something useful:
  */
 
-var station = Station.from(stations.pvfm3);
+var station = Station.from(stations.monstro);
 
 //var interStation = new Static();

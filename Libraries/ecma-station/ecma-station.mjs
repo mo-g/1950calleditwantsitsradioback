@@ -16,15 +16,18 @@
  */
 
 
-import icyClient from 'icy';
+import icyClient from 'ecma-iceclient';
 import hlxFileReader from 'hlx-file-reader';
 import vorbis from 'vorbis';
 import ogg from 'ogg';
+import lame from '@suldashi/lame';
 import fs from 'fs';
 import speaker from 'speaker';
 import getRandomValues from 'get-random-values';
 import { Readable } from 'stream';
 import Speaker from 'speaker';
+import { FileWriter } from 'wav';
+import MemoryStream from 'memorystream';
 
 
 const StreamProtocol = {
@@ -69,7 +72,7 @@ class ICYStation extends Station {
 
     setupStream  = (response) =>  {
         // log the HTTP response headers
-        console.log(response.rawHeaders);
+        //console.error(response.headers);
 
         if (!response.headers) {
             throw "Not a valid ICY Stream!"
@@ -100,7 +103,13 @@ class ICYStation extends Station {
                 break;
             case "audio/mpeg":
                 console.log("MPEG1_3 Stream");
-                this.decoder = new lame.Decoder().pipe(new Speaker())
+                var fileWriter = new FileWriter('demo.wav', {
+                    channels: 2,
+                    sampleRate: 44100,
+                    bitDepth: 32
+                });
+                this.decoder = new speaker();
+
                 break;
             case "audio/aacp":
                 throw "AAC not supported yet!";
@@ -109,11 +118,13 @@ class ICYStation extends Station {
         }
         // log any "metadata" events that happen
         response.on('metadata', this.parseMetadata);
-        response.pipe(this.decoder);
+        //response.pipe(this.decoder)
+        // NEED TO CACHE DATA WITH MEMORYSTREAM HERE.
+        response.pipe(new lame.Decoder()).pipe(this.decoder);
     }
 
     parseMetadata = (metadata) => {
-        console.log(metadata)
+        console.log(metadata.toString());
     }
 }
 
